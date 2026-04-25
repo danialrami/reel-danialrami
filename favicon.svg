@@ -3,8 +3,8 @@
     <rect width="32" height="32" fill="#111111"/>
     
     <!-- Outer tape path -->
-    <rect x="4" y="19" width="24" height="4" fill="#78BEBA"/>
-    <rect x="4" y="19" width="24" height="1" fill="#E7B225"/>
+    <rect x="4" y="20" width="24" height="4" fill="#78BEBA"/>
+    <rect x="4" y="20" width="24" height="1" fill="#E7B225"/>
     
     <!-- Left reel (spool) -->
     <circle cx="10" cy="12" r="6" fill="none" stroke="#78BEBA" stroke-width="1.5"/>
@@ -17,7 +17,7 @@
     <circle cx="22" cy="12" r="1" fill="#E7B225"/>
     
     <!-- Tape between reels -->
-    <rect x="13" y="16" width="6" height="2" fill="#D35233"/>
+    <rect x="13" y="17" width="6" height="2" fill="#D35233"/>
     
     <!-- Bottom detail pixels -->
     <rect x="8" y="24" width="2" height="2" fill="#78BEBA"/>
