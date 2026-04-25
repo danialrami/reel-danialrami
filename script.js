@@ -4,6 +4,10 @@
 (function () {
     'use strict';
 
+    // Update footer year
+    var yearEl = document.getElementById('current-year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+
     // --- Sticky header on scroll ---
     var header = document.getElementById('sticky-header');
     if (!header) return;
