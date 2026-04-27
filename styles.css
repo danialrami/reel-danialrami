@@ -357,11 +357,9 @@ body {
 
 .reel-video {
     width: 100%;
-    height: auto;
+    aspect-ratio: 16 / 9;
     display: block;
-    image-rendering: crisp-edges;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: pixelated;
+    border: none;
 }
 
 /* 7. Footer */
