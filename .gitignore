@@ -2,3 +2,5 @@
 .eslintrc.json
 .stylelintrc.json
 eslint.config.js
+
+*.mp4
