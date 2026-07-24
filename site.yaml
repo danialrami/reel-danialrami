@@ -1,0 +1,37 @@
+schema_version: 1
+site_id: reel-danialrami
+canonical_url: https://reel.daniel-ramirez.io
+source:
+  repository: lufs-audio/reel-danialrami
+  production_ref: main
+build:
+  # ZERO-BUILD static site: the repo root IS the site. scripts/build mirrors it
+  # into dist/ (minus tooling/meta). No node, no python needed to build.
+  command: bash scripts/build
+  output_dir: dist
+  toolchain:
+    kind: none
+runtime:
+  kind: static
+  index: index.html
+  error_document: index.html
+  spa_fallback: false
+  max_asset_bytes: 26214400   # Cloudflare Pages hard per-file cap (25 MiB)
+routes:
+  required:
+    - /
+external_origins:
+  - { id: google-fonts, url: https://fonts.googleapis.com, required: false }
+  - { id: youtube-embed, url: https://www.youtube.com, required: false }
+  - { id: umami-analytics, url: https://umami.lufshq.com, required: false }
+domains:
+  - reel.daniel-ramirez.io
+release:
+  # CI publishes the verified artifact to the agnostic `site` branch; Cloudflare
+  # Pages (production branch = site, build command empty, output "/") serves it.
+  artifact_name: site.tar.gz
+  publish_branch: site
+  retain: 20
+verification:
+  content_probe: /index.html
+  smoke_timeout_seconds: 10

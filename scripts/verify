@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""Portable artifact verifier (website-portability). Proves dist/ is correct
+rather than trusting exit code. Emits verification.json, fails closed."""
+import json, re, sys, pathlib
+REPO = pathlib.Path(__file__).resolve().parent.parent
+DIST = REPO / "dist"
+ROUTES_FILE = REPO / "site" / "routes.txt"
+MAX_ASSET_BYTES = 26214400  # Cloudflare Pages hard per-file cap (25 MiB)
+checks = []
+def add(cid, ok, **x):
+    checks.append({"id": cid, "status": "passed" if ok else "failed", **x}); return ok
+def route_to_file(r):
+    r = r.strip()
+    if r.endswith("/"):
+        return DIST / r.strip("/") / "index.html"
+    return DIST / r.lstrip("/")
+ok_all = True
+idx = DIST / "index.html"
+ok_all &= add("index_exists", idx.is_file() and idx.stat().st_size > 0)
+missing = []
+if ROUTES_FILE.is_file():
+    for line in ROUTES_FILE.read_text().splitlines():
+        r = line.strip()
+        if not r or r.startswith("#"): continue
+        if not route_to_file(r).is_file(): missing.append(r)
+ok_all &= add("required_routes", not missing, missing=missing)
+attr = re.compile(r'(?:href|src)\s*=\s*"([^"]+)"', re.I); dangling=[]; n=0
+for html in DIST.rglob("*.html"):
+    for ref in attr.findall(html.read_text(encoding="utf-8", errors="ignore")):
+        if not ref.startswith("/") or ref.startswith("//"): continue
+        p = ref.split("#",1)[0].split("?",1)[0]
+        if not p or p == "/": continue
+        n += 1
+        tgt = DIST / p.strip("/") / "index.html" if p.endswith("/") else DIST / p.lstrip("/")
+        if not tgt.exists(): dangling.append(ref)
+ok_all &= add("local_links_resolve", not dangling, count=n, offenders=sorted(set(dangling)))
+big = [str(p.relative_to(DIST)) for p in DIST.rglob("*") if p.is_file() and p.stat().st_size > MAX_ASSET_BYTES]
+ok_all &= add("asset_size_budget", not big, max_bytes=MAX_ASSET_BYTES, offenders=big)
+sre = re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----"); leaks=[]
+for p in DIST.rglob("*"):
+    if p.is_file() and p.suffix.lower() in {".html",".js",".json",".txt",".xml",".css",".svg"}:
+        try:
+            if sre.search(p.read_text(encoding="utf-8", errors="ignore")): leaks.append(str(p.relative_to(DIST)))
+        except Exception: pass
+ok_all &= add("secret_scan", not leaks, offenders=leaks)
+rep = {"status":"passed" if ok_all else "failed","checks":checks}
+(REPO/"verification.json").write_text(json.dumps(rep, indent=2)+"\n")
+print(json.dumps(rep, indent=2)); sys.exit(0 if ok_all else 1)
