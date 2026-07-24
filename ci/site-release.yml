@@ -1,0 +1,43 @@
+# ============================================================================
+# PLACE THIS AT: .github/workflows/site-release.yml
+# (ships under ci/ because the GitHub App can't commit workflow files — `git mv`).
+# ============================================================================
+# Platform-agnostic release: on push to main, build ONCE, PROVE the artifact
+# (scripts/verify, fail closed), publish to the `site` branch. Host subscribes to `site`.
+#
+# Runs on the self-hosted `lufs` fleet (private repo — safe from fork-PR RCE).
+# Ephemeral containers run as ROOT and are lean, so we install our own toolchain
+# (git + python3) in-job; no sudo. Zero-build static site → no node/npm needed.
+name: site-release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+concurrency:
+  group: site-release
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: [self-hosted, lufs]
+    steps:
+      - name: Toolchain (lean container, root, no sudo)
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git python3 ca-certificates
+      - name: Checkout
+        uses: actions/checkout@v4          # pin to a commit SHA before production
+        with:
+          fetch-depth: 0
+      - name: Build once
+        run: bash scripts/build
+      - name: Verify the artifact (fail closed)
+        run: python3 scripts/verify
+      - name: Publish to the agnostic `site` branch
+        env:
+          REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+          GIT_SHA: ${{ github.sha }}
+          GIT_AUTHOR_NAME: github-actions
+          GIT_AUTHOR_EMAIL: github-actions@users.noreply.github.com
+        run: bash scripts/publish-site

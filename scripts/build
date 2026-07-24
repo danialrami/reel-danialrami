@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Portable build (website-portability contract) — ZERO-BUILD STATIC variant.
+# There is no build tool: the repo root IS the site. Mirror it into dist/,
+# excluding tooling/meta so only web assets ship.
+set -euo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+rm -rf dist && mkdir -p dist
+# `*` (no dotglob) already skips .git/.github/.gitignore; drop the tooling/meta.
+for item in *; do
+  case "$item" in
+    dist|release|scripts|site|site.yaml|ci|docs|README.md|LICENSE|verification.json) continue;;
+    *) cp -R "$item" dist/;;
+  esac
+done
+test -s dist/index.html || { echo "build: dist/index.html missing or empty"; exit 1; }
+echo "build: ok ($(find dist -type f | wc -l) files)"
