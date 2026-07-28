@@ -43,6 +43,22 @@ for p in DIST.rglob("*"):
             if sre.search(p.read_text(encoding="utf-8", errors="ignore")): leaks.append(str(p.relative_to(DIST)))
         except Exception: pass
 ok_all &= add("secret_scan", not leaks, offenders=leaks)
+# analytics_tag: every promised route must actually ship the Umami tag with THIS
+# site's id. Guards the silent-drop failure mode -- a build exclusion list or a
+# bundler removing the tracker while CI stays green. Presence in source is not
+# proof; this asserts on the built artifact.
+UMAMI_SRC = "https://umami.lufshq.com/script.js"
+UMAMI_ID = "29c0319c-c1b0-4b81-b77f-397df61c5411"
+untagged = []
+if ROUTES_FILE.is_file():
+    for line in ROUTES_FILE.read_text().splitlines():
+        r = line.strip()
+        if not r or r.startswith("#"): continue
+        f = route_to_file(r)
+        if not f.is_file() or f.suffix.lower() != ".html": continue
+        t = f.read_text(encoding="utf-8", errors="ignore")
+        if UMAMI_SRC not in t or UMAMI_ID not in t: untagged.append(r)
+ok_all &= add("analytics_tag", not untagged, website_id=UMAMI_ID, offenders=untagged)
 rep = {"status":"passed" if ok_all else "failed","checks":checks}
 (REPO/"verification.json").write_text(json.dumps(rep, indent=2)+"\n")
 print(json.dumps(rep, indent=2)); sys.exit(0 if ok_all else 1)
